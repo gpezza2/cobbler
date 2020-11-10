@@ -20,8 +20,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301  USA
 """
 
-from future import standard_library
-standard_library.install_aliases()
 from builtins import str
 from builtins import object
 import optparse
@@ -44,7 +42,7 @@ OBJECT_ACTIONS_MAP = {
     "system": "add copy dumpvars edit find get-autoinstall list remove rename report poweron poweroff powerstatus "
               "reboot".split(" "),
     "image": "add copy edit find list remove rename report".split(" "),
-    "repo": "add copy edit find list remove rename report".split(" "),
+    "repo": "add copy edit find list remove rename report autoadd".split(" "),
     "mgmtclass": "add copy edit find list remove rename report".split(" "),
     "package": "add copy edit find list remove rename report".split(" "),
     "file": "add copy edit find list remove rename report".split(" "),
@@ -319,10 +317,10 @@ class CobblerCLI(object):
         self.args = cliargs
 
     def start_task(self, name, options):
-        """
+        r"""
         Start an asynchronous task in the background.
 
-        :param name: "background_" % name function must exist in remote.py. This function will be called in a subthread.
+        :param name: "background\_" % name function must exist in remote.py. This function will be called in a subthread.
         :type name: str
         :param options: Dictionary of options passed to the newly started thread
         :type options: dict
@@ -509,7 +507,7 @@ class CobblerCLI(object):
         if object_action in ["add", "edit", "copy", "rename", "find", "remove"]:
             add_options_from_fields(object_type, self.parser, fields,
                                     network_interface_fields, settings, object_action)
-        elif object_action in ["list"]:
+        elif object_action in ["list", "autoadd"]:
             pass
         elif object_action not in ("reload", "update"):
             self.parser.add_option("--name", dest="name", help="name of object")
@@ -529,6 +527,14 @@ class CobblerCLI(object):
             items = self.remote.find_items(object_type, utils.strip_none(vars(options), omit_none=True), "name", False)
             for item in items:
                 print(item)
+        elif object_action == "autoadd" and object_type == "repo":
+            try:
+                self.remote.auto_add_repos(self.token)
+            except xmlrpc.client.Fault as xxx_todo_autoadd:
+                (err) = xxx_todo_autoadd
+                (etype, emsg) = err.faultString.split(":", 1)
+                print("exception on server: %s" % emsg)
+                return 1
         elif object_action in OBJECT_ACTIONS:
             if opt(options, "name") == "" and object_action not in ("reload", "update"):
                 print("--name is required")

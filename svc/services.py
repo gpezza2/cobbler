@@ -21,8 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 """
 # Only add standard python modules here. When running under a virtualenv other modules are not
 # available at this point.
-from future import standard_library
-standard_library.install_aliases()
+
 from builtins import str
 import os
 import urllib.request
@@ -83,9 +82,8 @@ def application(environ, start_response):
     form["REMOTE_ADDR"] = environ.get("REMOTE_ADDR", None)
 
     # Read config for the XMLRPC port to connect to:
-    fd = open("/etc/cobbler/settings")
-    data = fd.read()
-    fd.close()
+    with open("/etc/cobbler/settings") as fd:
+        data = fd.read()
     ydata = yaml.safe_load(data)
     remote_port = ydata.get("xmlrpc_port", 25151)
 

@@ -1,3 +1,6 @@
+#!/bin/bash
+
+export DATAPATH="/usr/share/cobbler"
 export DOCPATH="share/man"
 export ETCPATH="/etc/cobbler"
 export LIBPATH="/var/lib/cobbler"
@@ -21,7 +24,7 @@ if [ "$DISTRO" = "" ] && [ -r /etc/os-release ];then
 	sle*|*suse*)
 	    DISTRO="SUSE"
 	    ;;
-	fedora*|centos*)
+	fedora*|centos*|rhel*)
 	    DISTRO="FEDORA"
 	    ;;
 	ubuntu*|debian*)

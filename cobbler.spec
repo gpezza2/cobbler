@@ -54,7 +54,7 @@
 %define apache_group www
 
 %define apache_dir /srv/www
-%define apache_webconfigdir /etc/apache2/vhosts.d
+%define apache_webconfigdir /etc/apache2/conf.d
 %define apache_mod_wsgi apache2-mod_wsgi-python%{python3_pkgversion}
 %define tftpboot_dir /srv/tftpboot
 
@@ -198,6 +198,8 @@ Requires(postun): systemd
 Requires:       %{apache_pkg}
 Requires:       %{tftpsrv_pkg}
 Requires:       %{createrepo_pkg}
+Requires:       fence-agents
+Requires:       file
 Requires:       rsync
 Requires:       xorriso
 %{?python_enable_dependency_generator}
@@ -205,7 +207,6 @@ Requires:       xorriso
 Requires:       %{py3_module_cheetah}
 Requires:       %{py3_module_dns}
 Requires:       python%{python3_pkgversion}-future
-Requires:       python%{python3_pkgversion}-ldap3
 Requires:       %{apache_mod_wsgi}
 Requires:       python%{python3_pkgversion}-netaddr
 Requires:       %{py3_module_pyyaml}
@@ -213,6 +214,11 @@ Requires:       python%{python3_pkgversion}-requests
 Requires:       python%{python3_pkgversion}-simplejson
 Requires:       python%{python3_pkgversion}-tornado
 Requires:       python%{python3_pkgversion}-distro
+%if 0%{?suse_version}
+Recommends:     python%{python3_pkgversion}-ldap3
+%else
+Requires:       python%{python3_pkgversion}-ldap3
+%endif
 %endif
 
 
@@ -228,6 +234,7 @@ Recommends:     syslinux
 Recommends:     %{grub2_x64_efi_pkg}
 Recommends:     %{grub2_ia32_efi_pkg}
 Recommends:     logrotate
+Recommends:     python%{python3_pkgversion}-librepo
 %endif
 # https://github.com/cobbler/cobbler/issues/1685
 %if %{_vendor} == "debbuild"
@@ -240,13 +247,13 @@ Obsoletes:      cobbler-nsupdate < 3.0.99
 Provides:       cobbler-nsupdate = %{version}-%{release}
 
 %description
-Cobbler is a network install server.  Cobbler supports PXE, ISO
+Cobbler is a network install server. Cobbler supports PXE, ISO
 virtualized installs, and re-installing existing Linux machines.
 The last two modes use a helper tool, 'koan', that integrates with
-cobbler.  There is also a web interface 'cobbler-web'.  Cobbler's
+cobbler. There is also a web interface 'cobbler-web'. Cobbler's
 advanced features include importing distributions from DVDs and rsync
 mirrors, kickstart templating, integrated yum mirroring, and built-in
-DHCP/DNS Management.  Cobbler has a XMLRPC API for integration with
+DHCP/DNS Management. Cobbler has a XML-RPC API for integration with
 other applications.
 
 
@@ -266,6 +273,13 @@ Requires(post): sed
 %description web
 Web interface for Cobbler that allows visiting
 http://server/cobbler_web to configure the install server.
+
+%package tests
+Summary:        Unit tests for cobbler
+Requires:       cobbler = %{version}-%{release}
+
+%description tests
+Unit test files from the Cobbler project
 
 
 %prep
@@ -297,8 +311,7 @@ echo "ERROR: DOCPATH: ${DOCPATH} does not match %{_mandir}"
 
 %install
 . distro_build_configs.sh
-# bypass install errors ( don't chown in install step)
-%py3_install ||:
+%py3_install
 
 # cobbler
 rm %{buildroot}%{_sysconfdir}/cobbler/cobbler.conf
@@ -315,6 +328,7 @@ ln -sf service %{buildroot}%{_sbindir}/rccobblerd
 
 # cobbler-web
 rm %{buildroot}%{_sysconfdir}/cobbler/cobbler_web.conf
+
 
 %pre
 %if %{_vendor} == "debbuild"
@@ -406,8 +420,10 @@ sed -i -e "s/SECRET_KEY = ''/SECRET_KEY = \'$RAND_SECRET\'/" %{_datadir}/cobbler
 %config(noreplace) %{_sysconfdir}/cobbler/boot_loader_conf/bootcfg_esxi60.template
 %config(noreplace) %{_sysconfdir}/cobbler/boot_loader_conf/bootcfg_esxi65.template
 %config(noreplace) %{_sysconfdir}/cobbler/boot_loader_conf/bootcfg_esxi67.template
+%config(noreplace) %{_sysconfdir}/cobbler/boot_loader_conf/bootcfg_esxi70.template
 %config(noreplace) %{_sysconfdir}/cobbler/boot_loader_conf/gpxe_system_esxi5.template
 %config(noreplace) %{_sysconfdir}/cobbler/boot_loader_conf/gpxe_system_esxi6.template
+%config(noreplace) %{_sysconfdir}/cobbler/boot_loader_conf/gpxe_system_esxi7.template
 %config(noreplace) %{_sysconfdir}/cobbler/boot_loader_conf/gpxe_system_freebsd.template
 %config(noreplace) %{_sysconfdir}/cobbler/boot_loader_conf/gpxe_system_linux.template
 %config(noreplace) %{_sysconfdir}/cobbler/boot_loader_conf/gpxe_system_local.template
@@ -496,6 +512,9 @@ sed -i -e "s/SECRET_KEY = ''/SECRET_KEY = \'$RAND_SECRET\'/" %{_datadir}/cobbler
 %attr(-,%{apache_user},%{apache_group}) %{apache_dir}/cobbler_webui_content/
 %endif
 
+%files tests
+%dir %{_datadir}/cobbler/tests
+%{_datadir}/cobbler/tests/*
 
 %changelog
 * Thu Dec 19 2019 Neal Gompa <ngompa13@gmail.com>

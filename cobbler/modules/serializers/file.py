@@ -22,7 +22,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301  USA
 """
 
-from past.builtins import cmp
 import os
 import glob
 import simplejson
@@ -120,9 +119,8 @@ def deserialize_raw(collection_types):
     """
     # FIXME: code to load settings file should not be replicated in all serializer subclasses.
     if collection_types == "settings":
-        fd = open("/etc/cobbler/settings")
-        _dict = yaml.safe_load(fd.read())
-        fd.close()
+        with open("/etc/cobbler/settings") as fd:
+            _dict = yaml.safe_load(fd.read())
 
         # include support
         for ival in _dict.get("include", []):
@@ -196,6 +194,6 @@ def __depth_cmp(item1, item2):
     """
     d1 = item1.get("depth", 1)
     d2 = item2.get("depth", 1)
-    return cmp(d1, d2)
+    return (d1 > d2) - (d1 < d2)
 
 # EOF

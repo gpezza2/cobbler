@@ -45,6 +45,7 @@ FIELDS = [
     ["environment", {}, 0, "Environment Variables", True, "Use these environment variables during commands (key=value, space delimited)", 0, "dict"],
     ["keep_updated", True, 0, "Keep Updated", True, "Update this repo on next 'cobbler reposync'?", 0, "bool"],
     ["mirror", None, 0, "Mirror", True, "Address of yum or rsync repo to mirror", 0, "str"],
+    ["mirror_type", "baseurl", 0, "Mirror Type", True, "", ["metalink", "mirrorlist", "baseurl"], "str"],
     ["mirror_locally", True, 0, "Mirror locally", True, "Copy files or just reference the repo externally?", 0, "bool"],
     ["name", "", 0, "Name", True, "Ex: f10-i386-updates", 0, "str"],
     ["owners", "SETTINGS:default_ownership", 0, "Owners", True, "Owners list for authz_ownership (space delimited)", [], "list"],
@@ -52,6 +53,7 @@ FIELDS = [
     ["proxy", "<<inherit>>", 0, "Proxy information", True, "http://example.com:8080, or <<inherit>> to use proxy_url_ext from settings, blank or <<None>> for no proxy", [], "str"],
     ["rpm_list", [], 0, "RPM List", True, "Mirror just these RPMs (yum only)", 0, "list"],
     ["yumopts", {}, 0, "Yum Options", True, "Options to write to yum config file", 0, "dict"],
+    ["rsyncopts", "", 0, "Rsync Options", True, "Options to use with rsync repo", 0, "dict"],
 ]
 
 
@@ -69,6 +71,8 @@ class Repo(item.Item):
         self.arch = None
         self.environment = {}
         self.yumopts = {}
+        self.rsyncopts = {}
+        self.mirror_type = "baseurl"
 
     #
     # override some base class methods first (item.Item)
@@ -140,6 +144,14 @@ class Repo(item.Item):
                 self.set_arch("i386")
         self._guess_breed()
 
+    def set_mirror_type(self, mirror_type):
+        """
+        Override the mirror_type used for reposync
+
+        :param mirror_type: The new mirror_type which will be used.
+        """
+        return utils.set_mirror_type(self, mirror_type)
+
     def set_keep_updated(self, keep_updated):
         """
         This allows the user to disable updates to a particular repo for whatever reason.
@@ -159,6 +171,18 @@ class Repo(item.Item):
             raise CX(_("invalid yum options"))
         else:
             self.yumopts = value
+
+    def set_rsyncopts(self, options):
+        """
+        rsync options are a space delimited list
+
+        :param options: Something like '-a -S -H -v'
+        """
+        (success, value) = utils.input_string_or_dict(options, allow_multiples=False)
+        if not success:
+            raise CX(_("invalid rsync options"))
+        else:
+            self.rsyncopts = value
 
     def set_environment(self, options):
         """
